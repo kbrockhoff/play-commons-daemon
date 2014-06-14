@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.sonatype.oss</groupId>
+        <artifactId>oss-parent</artifactId>
+        <version>7</version>
+    </parent>
+
+    <groupId>org.codekaizen.daemons</groupId>
+    <artifactId>play-commons-daemon</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <name>Play Framework Commons Daemon</name>
+    <description>Wrapper for running a Play Framework application using Apache Commons Daemon.</description>
+    <inceptionYear>2014</inceptionYear>
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <connection>scm:git:git@github.com:kbrockhoff/play-commons-daemon.git</connection>
+        <developerConnection>scm:git:git@github.com:kbrockhoff/play-commons-daemon.git</developerConnection>
+        <url>http://github.com/kbrockhoff/play-commons-daemon</url>
+    </scm>
+	
+	<properties>
+	</properties>
+	
+	<dependencies>
+	</dependencies>
+	
+	<build>
+	</build>
+
+</project>
