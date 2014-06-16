@@ -1,0 +1,156 @@
+#!/bin/bash
+#
+# play-app - This script starts and stops a Play Framework application daemon
+#
+# chkconfig:   - 85 15
+# description: Play is a high velocity web framework for Java and Scala
+ 
+### BEGIN INIT INFO
+# Provides:             play-app
+# Required-Start:       $network
+# Required-Stop:        $network
+# Default-Stop:         0 1 2 6
+# Short-Description:    Start/stop the play-app daemon
+# Description:          Play is a high velocity web framework for Java and Scala
+### END INIT INFO
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Check networking
+. /etc/sysconfig/network
+[[ $NETWORKING == no ]] && exit 0
+ 
+NAME=play-app
+PID_FILE=${PIDFILE:-/var/run/${NAME}/${NAME}.pid}
+LOCK_FILE=${LOCKFILE:-/var/lock/subsys/${NAME}}
+
+PLAYAPP_HOME=/opt/${NAME}
+PLAYAPP_USER=play
+PLAYAPP_OUT=/var/log/${NAME}/${NAME}.out
+LOGBACK_CONFIG=/etc/${NAME}/logback.xml
+
+PLAYAPP_OPTS="-Xms1024m -Xmx1024m -XX:MaxPermSize=256m"
+PLAYAPP_OPTS="$PLAYAPP_OPTS -Dcom.sun.management.jmxremote.ssl=true"
+PLAYAPP_OPTS="$PLAYAPP_OPTS -Dcom.sun.management.jmxremote.authenticate=true"
+PLAYAPP_OPTS="$PLAYAPP_OPTS -Dcom.sun.management.jmxremote.port=9999"
+
+PLAYAPP_LIB=${PLAYAPP_HOME}/lib
+CLASSPATH=${PLAYAPP_HOME}/classes
+for filename in `find $PLAYAPP_LIB`
+do
+	if (test -f $filename) then
+		CLASSPATH=$CLASSPATH:$filename
+	fi
+done
+
+JSVC_EXEC=`which jsvc`
+JAVA_HOME=${JAVA_HOME:-/usr/java/default}
+
+case `echo "testing\c"`,`echo -n testing` in
+	*c*,-n*) echo_n=   echo_c=     ;;
+	*c*,*)   echo_n=-n echo_c=     ;;
+	*)       echo_n=   echo_c='\c' ;;
+esac
+
+start() {
+	echo -n $"Starting ${NAME}: "
+	# check if app is already booted
+	__pids_var_run "${JAVA_HOME}/bin/java" "$PID_FILE"
+	RC=$?
+	if [ -z "$PID_FILE" -a -z "$pid" ]; then
+		pid="$(__pids_pidof "$1")"
+	fi
+	if [ -n "$pid" ]; then
+		echo_success
+		echo
+		return 0
+	fi
+	rm -f $PID_FILE
+
+	$JSVC_EXEC \
+		-user $PLAYAPP_USER \
+		-home $JAVA_HOME \
+		-server \
+		$PLAYAPP_OPTS \
+		-wait 30 \
+		-pidfile $PID_FILE \
+		-outfile $PLAYAPP_OUT \
+		-errfile '&1' \
+		-cp $CLASSPATH \
+		-Dlogger.file=$LOGBACK_CONFIG \
+		org.codekaizen.daemon.play.PlayDaemon $PLAYAPP_HOME 9000 9443
+	exitValue=$?
+
+	if [ $exitValue -eq 0 ]; then
+		echo_success
+	else
+		echo_failure
+	fi
+	echo
+}
+
+stop() {
+	echo -n $"Shutting down ${NAME}: "
+
+	$JSVC_EXEC \
+		-stop -pidfile $PID_FILE \
+		-user $PLAYAPP_USER \
+		-home $JAVA_HOME \
+		org.codekaizen.daemon.play.PlayDaemon $PLAYAPP_HOME
+	if [ $? -eq 0 ]; then
+		echo_success
+	else    
+		echo_failure
+	fi      
+	echo    
+}               
+        
+status() {
+	__pids_var_run "${JAVA_HOME}/bin/java" "$PID_FILE"
+	RC=$?
+	if [ -z "$PID_FILE" -a -z "$pid" ]; then
+		pid="$(__pids_pidof "$1")"
+	fi
+	if [ -n "$pid" ]; then
+		echo $"${NAME} (pid $pid) is running..."
+		return 0
+	fi      
+                
+	case "$RC" in   
+		0)      
+		echo $"${NAME} (pid $pid) is running..."
+		return 0
+		;;
+		1)
+		echo $"${NAME} dead but pid file exists"
+		return 1
+		;;
+	esac    
+	echo $"${NAME} is stopped"
+	return 2
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status
+        RETVAL=$?
+        ;;
+    restart|force-reload)
+        stop
+        start
+        ;;
+    *)
+        N=/etc/init.d/${NAME}
+        echo "Usage: $N {start|stop|restart|force-reload}" >&2
+        RETVAL=2
+        ;;
+esac
+
+exit 0
